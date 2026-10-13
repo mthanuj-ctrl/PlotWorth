@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlotWorth</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="loading-bar"></div>
+<header class="site-header">
+  <div class="brand">
+    <h1>PlotWorth</h1>
+    <p class="tagline">Real-time housing price prediction and neighborhood affordability clustering across Indian localities</p>
+  </div>
+  <div class="controls">
+    <input type="text" id="search-input" placeholder="Search locality (e.g. Whitefield Bangalore)" autocomplete="off">
+    <button id="search-btn">Search Locality</button>
+    <button id="geo-btn">Use My Location</button>
+    <label class="compare-toggle">
+      <input type="checkbox" id="compare-toggle">
+      <span>Compare mode</span>
+    </label>
+    <input type="text" id="compare-input" placeholder="Second locality" autocomplete="off" class="hidden">
+    <button id="share-btn">Copy Share Link</button>
+  </div>
+  <div id="feedback" class="feedback"></div>
+</header>
+<main class="grid" id="cards">
+  <section class="card" id="card-metrics">
+    <h2>Real Estate Metrics</h2><hr>
+    <div class="card-body">
+      <table class="metrics-table" id="metrics-table"><tbody>
+        <tr><td>Locality</td><td id="m-locality">&mdash;</td></tr>
+        <tr><td>City</td><td id="m-city">&mdash;</td></tr>
+        <tr><td>Price per sqft</td><td id="m-ppsf">&mdash;</td></tr>
+        <tr><td>Median BHK</td><td id="m-bhk">&mdash;</td></tr>
+        <tr><td>Buildings</td><td id="m-buildings">&mdash;</td></tr>
+        <tr><td>Land parcels</td><td id="m-land">&mdash;</td></tr>
+        <tr><td>Listings count</td><td id="m-listings">&mdash;</td></tr>
+        <tr><td>YoY change</td><td id="m-yoy">&mdash;</td></tr>
+      </tbody></table>
+      <div id="chart-historical" class="chart"></div>
+      <div class="card-actions"><button id="export-csv">Export as CSV</button></div>
+    </div>
+  </section>
+  <section class="card" id="card-forecast">
+    <h2>Predictive Horizon Engine</h2><hr>
+    <div class="card-body">
+      <table class="metrics-table"><tbody>
+        <tr><td>6 month forecast</td><td id="f-m6">&mdash;</td></tr>
+        <tr><td>2 year forecast</td><td id="f-y2">&mdash;</td></tr>
+        <tr><td>5 year forecast</td><td id="f-y5">&mdash;</td></tr>
+      </tbody></table>
+      <div id="chart-forecast" class="chart"></div>
+    </div>
+  </section>
+  <section class="card" id="card-eval">
+    <h2>Model Evaluation Metrics</h2><hr>
+    <div class="card-body">
+      <table class="metrics-table"><tbody>
+        <tr><td>R squared</td><td id="e-r2">&mdash;</td></tr>
+        <tr><td>RMSE</td><td id="e-rmse">&mdash;</td></tr>
+        <tr><td>MAE</td><td id="e-mae">&mdash;</td></tr>
+        <tr><td>MAPE</td><td id="e-mape">&mdash;</td></tr>
+      </tbody></table>
+      <p class="explain" id="eval-explain">Model accuracy is measured by fitting a linear regression to four years of historical prices. R squared measures how much variance the trend line explains. RMSE and MAE are the typical error in rupees per square foot. MAPE expresses that error as a percentage of the price level.</p>
+    </div>
+  </section>
+  <section class="card" id="card-tiers">
+    <h2>Affordability Tier Distribution</h2><hr>
+    <div class="card-body"><div id="chart-tiers" class="chart"></div></div>
+  </section>
+  <section class="card" id="card-stats">
+    <h2>Statistical Analysis &amp; Comparisons</h2><hr>
+    <div class="card-body">
+      <div id="chart-compare" class="chart"></div>
+      <div id="chart-hist" class="chart"></div>
+      <div id="chart-scatter" class="chart"></div>
+    </div>
+  </section>
+  <section class="card" id="card-amenities">
+    <h2>Amenity Radar</h2><hr>
+    <div class="card-body"><div id="chart-radar" class="chart"></div></div>
+  </section>
+  <section class="card" id="card-heatmap">
+    <h2>Growth Heatmap</h2><hr>
+    <div class="card-body"><div id="chart-heatmap" class="chart"></div></div>
+  </section>
+  <section class="card" id="card-rec">
+    <h2>Alternative Smart Recommendations</h2><hr>
+    <div class="card-body"><ul id="rec-list" class="rec-list"></ul></div>
+  </section>
+  <section class="card wide" id="card-map">
+    <h2>Interactive Spatial Map</h2><hr>
+    <div class="card-body">
+      <div id="map"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="swatch budget"></span>Budget</span>
+        <span class="legend-item"><span class="swatch mid"></span>Mid-Tier</span>
+        <span class="legend-item"><span class="swatch luxury"></span>Luxury</span>
+        <span class="legend-item"><span class="swatch square"></span>Land parcel</span>
+        <span class="legend-item"><span class="swatch circle"></span>Building</span>
+      </div>
+    </div>
+  </section>
+  <section class="card wide" id="card-methodology">
+    <h2>Methodology &amp; Code</h2><hr>
+    <div class="card-body methodology">
+      <h3>Geocoding</h3>
+      <p>Each query is sent to the Nominatim API as <code>&lt;query&gt;, India</code> with <code>countrycodes=in</code>. Latitude, longitude, suburb, city, and state are extracted from the response.</p>
+      <h3>Price lookup</h3>
+      <p>The locality name is fuzzy-matched against <code>india_house_prices.csv</code>. If no row is found, the city base price from <code>city_price_anchors.csv</code> is multiplied by a seeded factor between 0.75 and 1.35.</p>
+      <p class="formula">price_per_sqft = base_price_per_sqft * (0.75 + md5(locality) mod 1 * 0.60)</p>
+      <h3>K-Means tier clustering</h3>
+      <p>Property prices are clustered into three groups using <code>KMeans(n_clusters=3)</code>. Clusters are labeled by ascending centroid price: Budget, Mid-Tier, Luxury.</p>
+      <h3>Historical back-derivation</h3>
+      <p>Historical prices are computed by discounting the current price with a per-locality growth rate.</p>
+      <p class="formula">price(year) = price_now / (1 + g)^(current_year - year)</p>
+      <h3>Forecast</h3>
+      <p>A linear regression is fit on the four historical points and projected forward.</p>
+      <h3>Evaluation</h3>
+      <p>R squared, RMSE, MAE, and MAPE are computed from the linear regression residuals.</p>
+      <h3>Live geometry</h3>
+      <p>Overpass API fetches buildings, residential land plots, and nearby place nodes within 5 km. The query uses <code>out center 200;</code>. If Overpass fails, synthetic coordinates are generated so the map is never empty.</p>
+    </div>
+  </section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
